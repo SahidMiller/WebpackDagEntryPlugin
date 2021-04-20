@@ -19,6 +19,7 @@ module.exports = class DagEntryPlugin {
                 entry: {
                     dag: "dag-loader!" + path.join(compiler.context, this.config)
                 },
+                target: 'node',
                 output: {
                     path: compiler.context,
                     filename: this.filename,
