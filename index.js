@@ -17,7 +17,10 @@ module.exports = class DagEntryPlugin {
 
             compiler.webpack({ 
                 entry: {
-                    dag: "dag-loader!" + path.join(compiler.context, this.config)
+                    dag: "dag-loader!" + (path.isAbsolute(this.config) ? 
+                        this.config :
+                        path.join(compiler.context, this.config)
+                    )
                 },
                 target: 'node',
                 output: {
@@ -30,10 +33,23 @@ module.exports = class DagEntryPlugin {
             }, (err, stats) => {
                 
                 if (err) callback(err)
-                
+
                 const info = stats.toJson();
+                if (stats.hasErrors()) callback(info.errors);
+
+                try {
+
+                    const { cid, dag } = require(path.join(compiler.context, this.filename))
+                    const { links, size } = dag.toJSON()
+                                        
+                    const logger = compilation.getLogger("DagEntryPlugin");                   
+                    logger.info("⬡ DagEntryPlugin: ", cid); 
+                    logger.log(JSON.stringify({ cid, links, size }, null, 2));
                 
-                if (stats.hasErrors()) callback(info.errors);''
+                } catch (err) {
+                    callback(err)
+                }
+
                 callback(null)
             })
         })
