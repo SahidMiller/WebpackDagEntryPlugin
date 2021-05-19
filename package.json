@@ -1,6 +1,6 @@
 {
   "name": "webpack-dag-entry-plugin",
-  "version": "0.0.3",
+  "version": "0.1.0",
   "description": "Emits a bundle exporting a dag node and cid",
   "repository": "https://github.com/SahidMiller/WebpackDagEntryPlugin.git",
   "main": "index.js",
@@ -9,7 +9,7 @@
   },
   "author": "",
   "license": "ISC",
-  "dependencies": {
-    "dag-loader": "^0.0.4"
+  "devDependencies": {
+    "dag-loader": "0.1.0"
   }
 }

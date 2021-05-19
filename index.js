@@ -1,13 +1,15 @@
+const fs = require('fs')
 const path = require('path')
-
+require("dag-loader")
 module.exports = class DagEntryPlugin {
 
-    constructor({ config, filename }) {
-        if (!config || !filename) {
-            throw Error("config and filename required")
+    constructor({ path, glob, filename }) {
+        if (!path || !filename) {
+            throw Error("path and filename options required")
         }
 
-        this.config = config
+        this.path = path
+        this.glob = glob
         this.filename = filename
     }
 
@@ -15,16 +17,24 @@ module.exports = class DagEntryPlugin {
         
         compiler.hooks.afterEmit.tapAsync("DagEntryPlugin", (compilation, callback) => {
 
+            const root = path.isAbsolute(this.path) ? this.path : path.join(compiler.context, this.path)
+            const isRootADirectory = fs.lstatSync(root).isDirectory()
+            
+            //Add path query if directory and add glob if passed in
+            const requestParams = 
+                (isRootADirectory ? `?path=${root}` : '?') + 
+                (this.glob ? `&glob=${this.glob}` : '')
+            const requestFile = isRootADirectory ? "" : root
+            const outputPath = compilation.outputOptions.path || compiler.context
+
             compiler.webpack({ 
                 entry: {
-                    dag: "dag-loader!" + (path.isAbsolute(this.config) ? 
-                        this.config :
-                        path.join(compiler.context, this.config)
-                    )
+                    //Add params and if root is a file add to request
+                    dag: `dag-loader${requestParams}!${requestFile}`
                 },
                 target: 'node',
                 output: {
-                    path: compiler.context,
+                    path: outputPath,
                     filename: this.filename,
                     library: 'dag',
                     libraryTarget: 'umd',
@@ -38,13 +48,13 @@ module.exports = class DagEntryPlugin {
                 if (stats.hasErrors()) callback(info.errors);
 
                 try {
+                    const resultPath = path.join(outputPath, this.filename)
 
-                    const { cid, dag } = require(path.join(compiler.context, this.filename))
-                    const { links, size } = dag.toJSON()
-                                        
+                    delete require.cache[resultPath]
+                    const { cid } = require(resultPath)
+
                     const logger = compilation.getLogger("DagEntryPlugin");                   
                     logger.info("⬡ DagEntryPlugin: ", cid); 
-                    logger.log(JSON.stringify({ cid, links, size }, null, 2));
                 
                 } catch (err) {
                     callback(err)
